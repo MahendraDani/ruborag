@@ -1,6 +1,6 @@
 // Parse html file, strip html tags
 
-package parser
+package parse
 
 import (
 	"bufio"
@@ -17,7 +17,7 @@ func extractText(n *html.Node, sb *strings.Builder) {
 		text := strings.TrimSpace(n.Data)
 		if text != "" {
 			sb.WriteString(text)
-			sb.WriteString("\n")
+			sb.WriteString(" ")
 		}
 	}
 
@@ -48,7 +48,7 @@ func RemoveHTMLTagsFromFile(inputPath string) (string, error) {
 	var sb strings.Builder
 	extractText(doc, &sb)
 
-	outputHTML := "<pre>\n" + sb.String() + "</pre>"
+	text := strings.Join(strings.Fields(sb.String()), " ")
 
 	// Build output filename
 	// dir := filepath.Dir(inputPath)
@@ -63,5 +63,5 @@ func RemoveHTMLTagsFromFile(inputPath string) (string, error) {
 	// 	return "", err
 	// }
 
-	return outputHTML, nil
+	return text, nil
 }
