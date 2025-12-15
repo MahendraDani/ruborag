@@ -13,19 +13,19 @@ commands
 ```bash
 go run main.go parse -w -u --out-dir=./corpus/parsed corpus/raw/*
 ```
-user   0.16s
-system 0.16s
-cpu    24%
-total  1.282s
 
 2. Buffered IO
 ```bash
 go run main.go parse -w --out-dir=./corpus/parsed corpus/raw/*
-user   0.09s
-system 0.12s
-cpu    56%
-total  0.358s
 ```
 
+# ruborag parse benchmarks
+
+| IO strategy   | User time (s) | System time (s) | CPU usage | Total time (s) |
+|--------------|---------------|-----------------|-----------|----------------|
+| Unbuffered IO | 0.16          | 0.16            | 24%       | 1.282          |
+| Buffered IO   | 0.09          | 0.12            | 56%       | 0.358          |
+
+Buffered IO is ~3.5x faster than unbuffered IO.
 
 
