@@ -14,29 +14,36 @@ import (
 	"google.golang.org/genai"
 )
 
-// returns embeddings from provided filepath
-func Embed(inputPath string) {
+// EmbedClient defines only the methods we need from Gemini client
+type EmbedClient interface {
+	EmbedContent(
+		ctx context.Context,
+		model string,
+		contents []*genai.Content,
+		options *genai.EmbedContentConfig,
+	) (*genai.EmbedContentResponse, error)
+}
+
+type GeminiClient struct {
+	client *genai.Client
+}
+
+func (g *GeminiClient) EmbedContent(ctx context.Context, model string, contents []*genai.Content, options *genai.EmbedContentConfig) (*genai.EmbedContentResponse, error) {
+	return g.client.Models.EmbedContent(ctx, model, contents, options)
+}
+
+func EmbedWithClient(inputPath string, client EmbedClient) []byte {
 	text, err := readTextFileBuffered(inputPath)
 	if err != nil {
-		log.Printf("failed to open file: %v", err)
-	}
-
-	if len(text) == 0 {
-		log.Fatalf("file %s is empty", inputPath)
-	}
-
-	ctx := context.Background()
-	client, err := genai.NewClient(ctx, nil)
-	if err != nil {
-		log.Fatalf("Use your own GEMINI_API_KEY, as export GEMINI_API_KEY=<your_key>")
+		log.Fatalf("failed to read file: %v", err)
 	}
 
 	contents := []*genai.Content{
 		genai.NewContentFromText(text, genai.RoleUser),
 	}
 
-	result, err := client.Models.EmbedContent(
-		ctx,
+	result, err := client.EmbedContent(
+		context.Background(),
 		"gemini-embedding-001",
 		contents,
 		nil,
@@ -50,7 +57,17 @@ func Embed(inputPath string) {
 		log.Fatal(err)
 	}
 
-	fmt.Println(string(embeddings))
+	return embeddings
+}
+
+// returns embeddings from provided filepath
+func Embed(inputPath string) []byte {
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx, nil)
+	if err != nil {
+		log.Fatalf("Use your own GEMINI_API_KEY, as export GEMINI_API_KEY=<your_key>")
+	}
+	return EmbedWithClient(inputPath, &GeminiClient{client: client})
 }
 
 // readTextFileBuffered reads a file using buffered IO and ensures it is UTF-8 text

@@ -1,10 +1,61 @@
 package embedding
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"google.golang.org/genai"
 )
+
+type fakeClient struct{}
+
+func (f *fakeClient) EmbedContent(ctx context.Context, model string, contents []*genai.Content, options *genai.EmbedContentConfig) (*genai.EmbedContentResponse, error) {
+	return &genai.EmbedContentResponse{
+		Embeddings: []*genai.ContentEmbedding{
+			{
+				Values: []float32{0.1, 0.2, 0.3},
+			},
+		},
+	}, nil
+
+}
+
+func TestEmbedWithClient(t *testing.T) {
+	// write a temp file
+	path := t.TempDir() + "/test.txt"
+	content := "Hello embeddings!"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write temp file: %v", err)
+	}
+
+	// call EmbedWithClient
+	embeddings := EmbedWithClient(path, &fakeClient{})
+
+	// check that the output contains valid JSON
+	if !json.Valid(embeddings) {
+		t.Fatalf("output is not valid JSON: %s", string(embeddings))
+	}
+
+	// optional: check that it contains the vector we set
+	var parsed []*genai.ContentEmbedding
+	if err := json.Unmarshal(embeddings, &parsed); err != nil {
+		t.Fatalf("failed to unmarshal embeddings: %v", err)
+	}
+
+	if len(parsed) != 1 {
+		t.Fatalf("expected 1 embedding, got %d", len(parsed))
+	}
+
+	expected := []float32{0.1, 0.2, 0.3}
+	for i, v := range parsed[0].Values {
+		if v != expected[i] {
+			t.Fatalf("expected vector[%d]=%v, got %v", i, expected[i], v)
+		}
+	}
+}
 
 func writeTempFile(t *testing.T, content []byte) string {
 	t.Helper()
