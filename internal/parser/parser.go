@@ -1,6 +1,5 @@
 // Parse html file, strip html tags
-
-package parse
+package parser
 
 import (
 	"bufio"

@@ -1,4 +1,4 @@
-package parse_test
+package parser_test
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	parse "ruborag/internal/parser"
+	"ruborag/internal/parser"
 )
 
 const FileWritePerm = 0666
@@ -27,7 +27,7 @@ func TestRemoveHTMLTagsFromFile(t *testing.T) {
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
-	output, err := parse.RemoveHTMLTagsFromFile(filePath)
+	output, err := parser.RemoveHTMLTagsFromFile(filePath)
 	if err != nil {
 		t.Fatalf("failed to parse file: %v", err)
 	}
