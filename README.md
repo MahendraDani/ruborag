@@ -19,8 +19,6 @@ go run main.go parse -w -u --out-dir=./corpus/parsed corpus/raw/*
 go run main.go parse -w --out-dir=./corpus/parsed corpus/raw/*
 ```
 
-# ruborag parse benchmarks
-
 | IO strategy   | User time (s) | System time (s) | CPU usage | Total time (s) |
 |--------------|---------------|-----------------|-----------|----------------|
 | Unbuffered IO | 0.16          | 0.16            | 24%       | 1.282          |
