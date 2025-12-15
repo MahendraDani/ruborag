@@ -48,19 +48,25 @@ func RemoveHTMLTagsFromFile(inputPath string) (string, error) {
 	extractText(doc, &sb)
 
 	text := strings.Join(strings.Fields(sb.String()), " ")
+	return text, nil
+}
 
-	// Build output filename
-	// dir := filepath.Dir(inputPath)
-	// ext := filepath.Ext(inputPath)
-	// base := strings.TrimSuffix(filepath.Base(inputPath), ext)
+func RemoveHTMLTagsFromFileUnbuffered(inputPath string) (string, error) {
+	file, err := os.Open(inputPath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
 
-	// outputPath := filepath.Join(dir, base+"-stripped"+ext)
+	doc, err := html.Parse(file)
+	if err != nil {
+		return "", err
+	}
 
-	// don't write into file here, as this function can be used internally
-	// err = os.WriteFile(outputPath, []byte(outputHTML), 0644)
-	// if err != nil {
-	// 	return "", err
-	// }
+	var sb strings.Builder
+	extractText(doc, &sb)
 
+	// normalize whitespace
+	text := strings.Join(strings.Fields(sb.String()), " ")
 	return text, nil
 }

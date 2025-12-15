@@ -13,6 +13,7 @@ import (
 
 var writeToFile bool
 var outDir string
+var unbufferedIO bool
 
 var parseCmd = &cobra.Command{
 	Use:   "parse [--write --out-dir <dir>] <input_path>...",
@@ -92,7 +93,13 @@ Examples:
 }
 
 func parseSingleFile(inputPath string) error {
-	content, err := parser.RemoveHTMLTagsFromFile(inputPath)
+	var content string
+	var err error
+	if unbufferedIO {
+		content, err = parser.RemoveHTMLTagsFromFileUnbuffered(inputPath)
+	} else {
+		content, err = parser.RemoveHTMLTagsFromFile(inputPath)
+	}
 	if err != nil {
 		return err
 	}
@@ -116,5 +123,6 @@ func parseSingleFile(inputPath string) error {
 func init() {
 	rootCmd.AddCommand(parseCmd)
 	parseCmd.Flags().BoolVarP(&writeToFile, "write", "w", false, "Write output to a file")
+	parseCmd.Flags().BoolVarP(&unbufferedIO, "unbuffered-io", "u", false, "Read and write files without using buffered IO")
 	parseCmd.Flags().StringVar(&outDir, "out-dir", "", "Directory to write parsed output")
 }
