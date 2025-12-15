@@ -12,23 +12,37 @@ import (
 )
 
 var writeToFile bool
+var outDir string
 
 var parseCmd = &cobra.Command{
-	Use:   "parse [-w] <input_file>...",
+	Use:   "parse [--write --out-dir <dir>] <input_path>...",
 	Short: "Parse one or more input files",
-	Long: `Parse one or more input files and extract their readable content.
+	Long: `Parse one or more input HTML files and extract their readable text content.
 
-By default, the parsed output is written to stdout. When the -w flag is
-provided, the output of each input file is written to a corresponding
-output file with "-parsed" appended to the filename.
+The parse command removes HTML markup and outputs clean, human-readable text.
+Input arguments may be individual HTML files or directories containing HTML files.
 
-The command accepts one or more input files.
+By default, parsed content is written to stdout, which makes the command
+compatible with standard Unix pipelines for exploratory use.
+
+When the --write flag is provided, parsed output is written to files instead
+of stdout. In this mode, an output directory must be specified using --out-dir.
+Each input HTML file produces a corresponding "-parsed.txt" file in the output
+directory.
 
 Examples:
+  # Parse a single file and print to stdout
   ruborag parse book.html
+
+  # Parse multiple files
   ruborag parse chapter1.html chapter2.html
-  ruborag parse -w book.html
-  ruborag parse -w chapter1.html chapter2.html`,
+
+  # Parse a directory of HTML files and write output files
+  ruborag parse rust-book/ --write --out-dir out-again
+
+  # Use stdout output with Unix tools
+  ruborag parse book.html | less
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if len(args) == 0 {
@@ -84,7 +98,14 @@ func parseSingleFile(inputPath string) error {
 	}
 
 	if writeToFile {
-		outPath := strings.TrimSuffix(inputPath, filepath.Ext(inputPath)) + "-parsed.txt"
+		if err := os.MkdirAll(outDir, 0755); err != nil {
+			return err
+		}
+
+		base := filepath.Base(inputPath)
+		name := strings.TrimSuffix(base, filepath.Ext(base))
+		outPath := filepath.Join(outDir, name+"-parsed.txt")
+
 		return os.WriteFile(outPath, []byte(content), 0644)
 	}
 
@@ -95,4 +116,5 @@ func parseSingleFile(inputPath string) error {
 func init() {
 	rootCmd.AddCommand(parseCmd)
 	parseCmd.Flags().BoolVarP(&writeToFile, "write", "w", false, "Write output to a file")
+	parseCmd.Flags().StringVar(&outDir, "out-dir", "", "Directory to write parsed output")
 }
