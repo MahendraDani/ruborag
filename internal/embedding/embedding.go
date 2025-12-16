@@ -113,3 +113,27 @@ func readTextFileBuffered(path string) (string, error) {
 
 	return string(content), nil
 }
+
+func EmbedChunk(text string) ([]float32, error) {
+	// Wrap text in a temporary in-memory "client" request
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+	}
+
+	contents := []*genai.Content{
+		genai.NewContentFromText(text, genai.RoleUser),
+	}
+
+	result, err := (&GeminiClient{client: client}).EmbedContent(ctx, "gemini-embedding-001", contents, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Embeddings) == 0 {
+		return nil, fmt.Errorf("no embeddings returned")
+	}
+
+	return result.Embeddings[0].Values, nil
+}
