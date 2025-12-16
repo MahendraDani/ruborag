@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"unicode/utf8"
 
@@ -28,14 +26,20 @@ type GeminiClient struct {
 	client *genai.Client
 }
 
-func (g *GeminiClient) EmbedContent(ctx context.Context, model string, contents []*genai.Content, options *genai.EmbedContentConfig) (*genai.EmbedContentResponse, error) {
+func (g *GeminiClient) EmbedContent(
+	ctx context.Context,
+	model string,
+	contents []*genai.Content,
+	options *genai.EmbedContentConfig,
+) (*genai.EmbedContentResponse, error) {
 	return g.client.Models.EmbedContent(ctx, model, contents, options)
 }
 
-func EmbedWithClient(inputPath string, client EmbedClient) []byte {
+// EmbedWithClient generates an embedding vector for the given file
+func EmbedWithClient(inputPath string, client EmbedClient) ([]float32, error) {
 	text, err := readTextFileBuffered(inputPath)
 	if err != nil {
-		log.Fatalf("failed to read file: %v", err)
+		return nil, err
 	}
 
 	contents := []*genai.Content{
@@ -49,24 +53,29 @@ func EmbedWithClient(inputPath string, client EmbedClient) []byte {
 		nil,
 	)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	embeddings, err := json.MarshalIndent(result.Embeddings, "", "  ")
-	if err != nil {
-		log.Fatal(err)
+	if len(result.Embeddings) == 0 {
+		return nil, fmt.Errorf("no embeddings returned from model")
 	}
 
-	return embeddings
+	// Single input → single embedding
+	return result.Embeddings[0].Values, nil
 }
 
-// returns embeddings from provided filepath
-func Embed(inputPath string) []byte {
+// Embed creates a Gemini client and generates embeddings for the file
+func Embed(inputPath string) ([]float32, error) {
 	ctx := context.Background()
+
 	client, err := genai.NewClient(ctx, nil)
 	if err != nil {
-		log.Fatalf("Use your own GEMINI_API_KEY, as export GEMINI_API_KEY=<your_key>")
+		return nil, fmt.Errorf(
+			"failed to create Gemini client (ensure GEMINI_API_KEY is set): %w",
+			err,
+		)
 	}
+
 	return EmbedWithClient(inputPath, &GeminiClient{client: client})
 }
 
