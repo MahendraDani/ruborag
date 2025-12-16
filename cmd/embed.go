@@ -120,7 +120,29 @@ func embedFile(path string, database *db.DB) error {
 		chunks = []string{text} // single chunk = whole file
 	}
 
+	sourceFile := filepath.Base(path)
+
 	for i, chunk := range chunks {
+
+		if database != nil {
+			exists, err := database.EmbeddingExists(sourceFile, i)
+			if err != nil {
+				return fmt.Errorf("failed to check existing embedding for %s (chunk %d): %w", path, i, err)
+			}
+
+			// Non-chunked mode → skip entire file immediately
+			if exists && !useChunking {
+				fmt.Printf("skipping %s (already embedded)\n", path)
+				return nil
+			}
+
+			// Chunked mode → skip only this chunk
+			if exists {
+				fmt.Printf("skipping %s (chunk %d already embedded)\n", path, i)
+				continue
+			}
+		}
+
 		vec, err := embedding.EmbedChunk(chunk)
 		if err != nil {
 			return fmt.Errorf("embedding error for chunk %d of %s: %w", i, path, err)
@@ -128,16 +150,28 @@ func embedFile(path string, database *db.DB) error {
 
 		if database != nil {
 			if err := database.InsertEmbedding(
-				filepath.Base(path),
+				sourceFile,
 				i, // chunk_index
 				chunk,
 				vec,
 			); err != nil {
 				return fmt.Errorf("failed to insert embedding for chunk %d of %s: %w", i, path, err)
 			}
-			fmt.Printf("stored embedding for %s (chunk %d/%d)\n", path, i+1, len(chunks))
+
+			fmt.Printf(
+				"stored embedding for %s (chunk %d/%d)\n",
+				path,
+				i+1,
+				len(chunks),
+			)
 		} else {
-			fmt.Printf("embedded %s (chunk %d/%d, %d dimensions)\n", path, i+1, len(chunks), len(vec))
+			fmt.Printf(
+				"embedded %s (chunk %d/%d, %d dimensions)\n",
+				path,
+				i+1,
+				len(chunks),
+				len(vec),
+			)
 		}
 	}
 

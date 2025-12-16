@@ -110,3 +110,22 @@ func (db *DB) InsertEmbedding(
 
 	return nil
 }
+
+func (db *DB) EmbeddingExists(sourceFile string, chunkIndex int) (bool, error) {
+	const query = `
+	SELECT 1
+	FROM embeddings
+	WHERE source_file = ? AND chunk_index = ?
+	LIMIT 1;
+	`
+
+	var dummy int
+	err := db.conn.QueryRow(query, sourceFile, chunkIndex).Scan(&dummy)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
