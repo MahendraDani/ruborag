@@ -13,33 +13,48 @@ import (
 )
 
 var writeToIndex bool
+var useChunking bool
+var chunkSize int
 
 var embedCmd = &cobra.Command{
-	Use:   "embed [-w] <input_path>...",
+	Use:   "embed [-w|-c] <input_path>...",
 	Short: "Generate vector embeddings of one or more files",
 	Long: `The embed command reads parsed text files (produced by ruborag parse)
 and computes vector embeddings for each file. When the -w flag is provided,
 the embeddings are stored in a local SQLite database (ruborag.db) for later retrieval.
 
+By default, each file is embedded as a single unit. When chunking is enabled
+using the -c flag, files are split into smaller chunks and each chunk is
+embedded independently.
+
+When the -w flag is provided, embeddings are stored in a local SQLite database
+(ruborag.db) for later retrieval by the search and ask commands. Otherwise,
+embedding information is printed to stdout.
+
+Chunking is recommended for large files, as it improves retrieval quality
+and avoids model input size limits.
+
+Options:
+  -w, --write            Store embeddings in SQLite index
+  -c, --chunk            Enable chunking before embedding
+      --chunk-size int   Size of each chunk in characters (default: 1000)
+
 Examples:
 
-  # Embed a single parsed file
+  # Embed a single file without chunking
   ruborag embed parsed/book.txt
 
-  # Embed a single parsed file and write to index
+  # Embed and store embeddings in SQLite
   ruborag embed -w parsed/book.txt
 
-  # Embed multiple parsed files
-  ruborag embed parsed/chapter1.txt parsed/chapter2.txt
+  # Embed with chunking (default chunk size)
+  ruborag embed -c parsed/book.txt
 
-  # Embed multiple parsed files and write to index
-  ruborag embed -w parsed/chapter1.txt parsed/chapter2.txt
+  # Embed with chunking and custom chunk size
+  ruborag embed -c --chunk-size 2000 parsed/book.txt
 
-  # Embed all files in a directory
-  ruborag embed parsed/
-
-  # Embed all files in a directory and write to index
-  ruborag embed -w parsed/
+  # Embed all parsed files in a directory with chunking and storage
+  ruborag embed -w -c parsed/
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
@@ -63,11 +78,6 @@ Examples:
 			}
 		}
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(embedCmd)
-	embedCmd.Flags().BoolVarP(&writeToIndex, "write", "w", false, "Write embeddings to index (SQLite)")
 }
 
 // handles a single file or directory
@@ -103,8 +113,12 @@ func embedFile(path string, database *db.DB) error {
 	}
 	text := string(data)
 
-	const chunkSize = 1000 //
-	chunks := splitTextIntoChunks(text, chunkSize)
+	var chunks []string
+	if useChunking {
+		chunks = splitTextIntoChunks(text, chunkSize)
+	} else {
+		chunks = []string{text} // single chunk = whole file
+	}
 
 	for i, chunk := range chunks {
 		vec, err := embedding.EmbedChunk(chunk)
@@ -143,4 +157,11 @@ func splitTextIntoChunks(text string, chunkSize int) []string {
 	}
 
 	return chunks
+}
+
+func init() {
+	rootCmd.AddCommand(embedCmd)
+	embedCmd.Flags().BoolVarP(&writeToIndex, "write", "w", false, "Write embeddings to index (SQLite)")
+	embedCmd.Flags().BoolVarP(&useChunking, "chunk", "c", false, "Enable chunking of files for embeddings")
+	embedCmd.Flags().IntVar(&chunkSize, "chunk-size", 1000, "Size of each chunk (in characters) when chunking is enabled")
 }
