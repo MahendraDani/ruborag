@@ -38,3 +38,39 @@ func TestOpenCreatesDatabaseAndSchema(t *testing.T) {
 		t.Fatalf("expected table 'embeddings', got %q", tableName)
 	}
 }
+
+func TestInsertEmbedding(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, db.DefaultDBName)
+
+	database, err := db.Open(dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer database.Close()
+
+	embedding := []float32{0.1, 0.2, 0.3}
+
+	err = database.InsertEmbedding(
+		"example-parsed.txt",
+		0,
+		"Ownership is Rust’s most unique feature.",
+		embedding,
+	)
+	if err != nil {
+		t.Fatalf("insert embedding: %v", err)
+	}
+
+	row := database.QueryRow(`
+		SELECT COUNT(*) FROM embeddings;
+	`)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		t.Fatalf("scan count: %v", err)
+	}
+
+	if count != 1 {
+		t.Fatalf("expected 1 row, got %d", count)
+	}
+}

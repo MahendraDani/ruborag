@@ -1,7 +1,9 @@
 package db
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/binary"
 	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -68,5 +70,43 @@ func (db *DB) initSchema() error {
 	if _, err := db.conn.Exec(schema); err != nil {
 		return fmt.Errorf("init schema: %w", err)
 	}
+	return nil
+}
+
+func (db *DB) InsertEmbedding(
+	sourceFile string,
+	chunkIndex int,
+	content string,
+	embedding []float32,
+) error {
+	if len(embedding) == 0 {
+		return fmt.Errorf("embedding cannot be empty")
+	}
+
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, embedding); err != nil {
+		return fmt.Errorf("encode embedding: %w", err)
+	}
+
+	const query = `
+	INSERT INTO embeddings (
+		source_file,
+		chunk_index,
+		content,
+		embedding
+	) VALUES (?, ?, ?, ?);
+	`
+
+	_, err := db.conn.Exec(
+		query,
+		sourceFile,
+		chunkIndex,
+		content,
+		buf.Bytes(),
+	)
+	if err != nil {
+		return fmt.Errorf("insert embedding: %w", err)
+	}
+
 	return nil
 }
