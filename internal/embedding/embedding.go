@@ -64,6 +64,32 @@ func EmbedWithClient(inputPath string, client EmbedClient) ([]float32, error) {
 	return result.Embeddings[0].Values, nil
 }
 
+func EmbedQuery(text string) ([]float32, error) {
+	contents := []*genai.Content{
+		genai.NewContentFromText(text, genai.RoleUser),
+	}
+
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+	}
+	result, err := (&GeminiClient{client: client}).EmbedContent(ctx, "gemini-embedding-001", contents, nil)
+	if err != nil {
+		return nil, err
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Embeddings) == 0 {
+		return nil, fmt.Errorf("no embeddings returned from model")
+	}
+
+	return result.Embeddings[0].Values, nil
+
+}
+
 // Embed creates a Gemini client and generates embeddings for the file
 func Embed(inputPath string) ([]float32, error) {
 	ctx := context.Background()
