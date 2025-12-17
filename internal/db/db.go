@@ -129,3 +129,66 @@ func (db *DB) EmbeddingExists(sourceFile string, chunkIndex int) (bool, error) {
 	}
 	return true, nil
 }
+
+type StoredEmbedding struct {
+	SourceFile string
+	ChunkIndex int
+	Vector     []float32
+}
+
+func (db *DB) GetAllEmbeddings() ([]StoredEmbedding, error) {
+	const query = `
+	SELECT source_file, chunk_index, embedding
+	FROM embeddings;
+	`
+
+	rows, err := db.conn.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("query embeddings: %w", err)
+	}
+	defer rows.Close()
+
+	var results []StoredEmbedding
+
+	for rows.Next() {
+		var sourceFile string
+		var chunkIndex int
+		var blob []byte
+
+		if err := rows.Scan(&sourceFile, &chunkIndex, &blob); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+
+		vec, err := DecodeEmbedding(blob)
+		if err != nil {
+			return nil, fmt.Errorf("decode embedding: %w", err)
+		}
+
+		results = append(results, StoredEmbedding{
+			SourceFile: sourceFile,
+			ChunkIndex: chunkIndex,
+			Vector:     vec,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func DecodeEmbedding(blob []byte) ([]float32, error) {
+	if len(blob)%4 != 0 {
+		return nil, fmt.Errorf("invalid embedding blob size")
+	}
+
+	vec := make([]float32, len(blob)/4)
+	reader := bytes.NewReader(blob)
+
+	if err := binary.Read(reader, binary.LittleEndian, &vec); err != nil {
+		return nil, err
+	}
+
+	return vec, nil
+}
