@@ -32,6 +32,7 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		question := args[0]
 
+		log.Println("Embedding query...")
 		queryVec, err := embedding.EmbedChunk(question)
 		if err != nil {
 			log.Fatalf("failed to embed query: %v", err)
@@ -43,12 +44,13 @@ Examples:
 		}
 		defer database.Close()
 
+		log.Println("Loading Rust Book embeddings...")
 		embeddings, err := database.GetAllEmbeddings()
 		if err != nil {
 			log.Fatalf("failed to load embeddings: %v", err)
 		}
 
-		// Retrieve top-3 chunks
+		log.Println("Searching for relevant context...")
 		results := search.SearchQuery(queryVec, embeddings)
 		if len(results) == 0 {
 			log.Fatal("no relevant context found")
@@ -58,10 +60,13 @@ Examples:
 		if len(results) < limit {
 			limit = len(results)
 		}
-		// Build context
+		log.Printf("Selected top %d most relevant passages:\n", limit)
+
 		var ctxBuilder strings.Builder
 		for i := 0; i < limit; i++ {
 			r := results[i]
+			log.Printf("  [%d] %s\n", i+1, r.SourceFile)
+
 			fmt.Fprintf(&ctxBuilder,
 				"[%d] Source: %s \n%s\n\n",
 				i+1,
@@ -82,7 +87,7 @@ QUESTION:
 %s
 `, ctxBuilder.String(), question)
 
-		// Gemini call
+		log.Println("Gemini is thinking...")
 		ctx := context.Background()
 		client, err := genai.NewClient(ctx, nil)
 		if err != nil {
@@ -99,6 +104,7 @@ QUESTION:
 			log.Fatalf("LLM error: %v", err)
 		}
 
+		log.Println("Gemini response generated:\n")
 		fmt.Println(resp.Text())
 	},
 }
