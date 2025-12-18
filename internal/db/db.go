@@ -154,9 +154,10 @@ func (db *DB) GetAllEmbeddings() ([]StoredEmbedding, error) {
 	for rows.Next() {
 		var sourceFile string
 		var chunkIndex int
+		var content string
 		var blob []byte
 
-		if err := rows.Scan(&sourceFile, &chunkIndex, &blob); err != nil {
+		if err := rows.Scan(&sourceFile, &chunkIndex, &blob, &content); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 
@@ -168,6 +169,7 @@ func (db *DB) GetAllEmbeddings() ([]StoredEmbedding, error) {
 		results = append(results, StoredEmbedding{
 			SourceFile: sourceFile,
 			ChunkIndex: chunkIndex,
+			Content:    content,
 			Vector:     vec,
 		})
 	}
