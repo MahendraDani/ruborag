@@ -133,12 +133,13 @@ func (db *DB) EmbeddingExists(sourceFile string, chunkIndex int) (bool, error) {
 type StoredEmbedding struct {
 	SourceFile string
 	ChunkIndex int
+	Content    string
 	Vector     []float32
 }
 
 func (db *DB) GetAllEmbeddings() ([]StoredEmbedding, error) {
 	const query = `
-	SELECT source_file, chunk_index, embedding
+	SELECT source_file, chunk_index, embedding, content
 	FROM embeddings;
 	`
 

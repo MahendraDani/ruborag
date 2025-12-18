@@ -61,10 +61,9 @@ Examples:
 		for i := 0; i < topK; i++ {
 			r := results[i]
 			fmt.Printf(
-				"%d. %s (chunk %d) — score: %.4f\n",
+				"%d. %s — score: %.4f\n",
 				i+1,
 				r.SourceFile,
-				r.ChunkIndex,
 				r.Score,
 			)
 		}

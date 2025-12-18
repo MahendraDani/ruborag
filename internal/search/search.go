@@ -10,6 +10,7 @@ import (
 type SearchResult struct {
 	SourceFile string
 	ChunkIndex int
+	Content    string
 	Score      float32
 }
 
@@ -25,6 +26,7 @@ func SearchQuery(queryVec []float32, embeddings []db.StoredEmbedding) []SearchRe
 		results = append(results, SearchResult{
 			SourceFile: e.SourceFile,
 			ChunkIndex: e.ChunkIndex,
+			Content:    e.Content,
 			Score:      score,
 		})
 	}
