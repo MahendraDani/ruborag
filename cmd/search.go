@@ -5,19 +5,12 @@ import (
 	"log"
 	"ruborag/internal/db"
 	"ruborag/internal/embedding"
-	"ruborag/internal/similarity"
-	"sort"
+	"ruborag/internal/search"
 
 	"github.com/spf13/cobra"
 )
 
 var topK int
-
-type searchResult struct {
-	SourceFile string
-	ChunkIndex int
-	Score      float32
-}
 
 var searchCmd = &cobra.Command{
 	Use:   "search <query>",
@@ -57,25 +50,9 @@ Examples:
 			log.Fatalf("failed to load embeddings: %v", err)
 		}
 
-		if len(embeddings) == 0 {
-			log.Fatal("no embeddings found in database")
-		}
+		search.SearchQuery(queryVec, embeddings)
 
-		results := make([]searchResult, 0, len(embeddings))
-
-		for _, e := range embeddings {
-			score := similarity.CosineSimilarity(queryVec, e.Vector)
-			results = append(results, searchResult{
-				SourceFile: e.SourceFile,
-				ChunkIndex: e.ChunkIndex,
-				Score:      score,
-			})
-		}
-
-		sort.Slice(results, func(i, j int) bool {
-			return results[i].Score > results[j].Score
-		})
-
+		results := search.SearchQuery(queryVec, embeddings)
 		if topK > len(results) {
 			topK = len(results)
 		}
