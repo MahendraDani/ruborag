@@ -2,6 +2,8 @@
 
 ruborag (The Rust Book RAG) is a **Retrieval-Augmented Generation (RAG)** CLI tool written in Go. It supports parsing, embedding, searching, and question-answering over a document corpus from  [The Rust Programming Language book](https://doc.rust-lang.org/book/).
 
+![Ruborag](./ruborag.png)
+
 # Features
 
 1. Parse HTML files - strip tags, remove spaces and lines (`ruborag parse [--write --out-dir <dir>] <input_path>...`). 
